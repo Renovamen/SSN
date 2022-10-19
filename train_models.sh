@@ -18,19 +18,20 @@ EPOCHS=200
 BATCH_SIZE=128
 DEPTH=28
 WIDTH=10
+ARCH="resnet18"
 
 case ${DATASET} in
     cifar10)
-	    python main.py data --dataset ${DATASET} \
-	    --depth ${DEPTH} --wide ${WIDTH} \
-	    --share_type ${SHARE} --cutout --job-id ${TAG} \
-	    --epochs ${EPOCHS} --batch_size ${BATCH_SIZE} \
-	    --decay ${DECAY} --schedule ${SCHEDULE} \
-	    --gammas ${GAMMA} --ngpu ${NUM_GPUS} \
-	    ${EXTRA_ARGS}
-	;;
+        python main.py data --dataset ${DATASET} --arch ${ARCH} \
+        --depth ${DEPTH} --wide ${WIDTH} \
+        --share_type ${SHARE} --cutout --job-id ${TAG} \
+        --epochs ${EPOCHS} --batch_size ${BATCH_SIZE} \
+        --decay ${DECAY} --schedule ${SCHEDULE} \
+        --gammas ${GAMMA} --ngpu ${NUM_GPUS} \
+        ${EXTRA_ARGS}
+    ;;
     cifar100)
-            python main.py data --dataset ${DATASET} \
+            python main.py data --dataset ${DATASET} --arch ${ARCH} \
             --depth ${DEPTH} --wide ${WIDTH} \
             --share_type ${SHARE} --cutout --job-id ${TAG} \
             --epochs ${EPOCHS} --batch_size ${BATCH_SIZE} \
@@ -39,7 +40,7 @@ case ${DATASET} in
             ${EXTRA_ARGS}
         ;;
     imagenet)
-            python main.py data --dataset ${DATASET} \
+            python main.py data --dataset ${DATASET} --arch ${ARCH} \
             --depth ${DEPTH} --wide ${WIDTH} \
             --share_type ${SHARE} --job-id ${TAG} \
             --epochs ${EPOCHS} --batch_size ${BATCH_SIZE} \
@@ -52,4 +53,3 @@ case ${DATASET} in
         exit
         ;;
 esac
-

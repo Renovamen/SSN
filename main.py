@@ -366,10 +366,22 @@ def load_model(num_classes, log, max_params, share_type, upsample_type,
         net = models.efficientnet_imagenet(
             args.effnet_arch, share_type, upsample_type, args.upsample_window,
             args.bank_size, max_params, groups)
+    elif args.arch == "resnet18":
+        net = models.resnet18(
+            share_type = share_type,
+            upsample_type = upsample_type,
+            upsample_window = args.upsample_window,
+            max_params = max_params,
+            num_templates = args.bank_size,
+            num_classes = num_classes,
+            groups = groups
+        )
     else:
         net = models.__dict__[args.arch](
             share_type, upsample_type, args.upsample_window, args.depth,
-            args.wide, args.bank_size, max_params, num_classes, groups)
+            args.wide, args.bank_size, max_params, num_classes, groups
+        )
+
     print_log("=> network :\n {}".format(net), log)
     if args.dist:
         net = net.to(get_cuda_device())

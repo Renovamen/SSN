@@ -15,16 +15,19 @@ else:
 
 class SharedParameters(nn.Module):
     def __init__(self, upsample_type, emb_size, num_params, init, init_blocks):
-        super(SharedParameters, self).__init__()
+        super().__init__()
+
         self._upsample_type = upsample_type
         self._emb_size = emb_size
+
         params = torch.Tensor(num_params)
         init(params[:(num_params // 9) * 9].view(-1, 3, 3))
+
         if init_blocks is not None:
             for (num_candidates, start, end), layer_shape in init_blocks:
                 if (np.prod(layer_shape) * num_candidates) > num_params:
                     continue
-                
+
                 for p in params[start:end].view(num_candidates, *layer_shape):
                     init(p)
 
@@ -40,18 +43,21 @@ class SharedParameters(nn.Module):
 
 class ParameterCombiner(nn.Module):
     def __init__(self, learn_groups, num_candidates, layer_shape, num_params, upsample_type, upsample_window, coefficients, init, layer=None):
-        super(ParameterCombiner, self).__init__()
+        super().__init__()
+
         self._learn_groups = learn_groups
         self._upsample_type = upsample_type
         self._upsample_window = upsample_window
         self._out_param_shape = layer_shape
         self.num_candidates = num_candidates
         self.layer = layer
+
         self.single_dims = list(np.ones(len(layer_shape), np.int32))
+
         if coefficients is not None:
             coefficients = nn.Parameter(coefficients)
-
         self.coefficients = coefficients
+
         if num_candidates > 1:
             self.mask = nn.Parameter(torch.ones(num_candidates), requires_grad=False)
 
@@ -102,18 +108,22 @@ class ParameterCombiner(nn.Module):
         x = x.view(self.num_candidates, *self._out_param_shape)
         if self.coefficients is not None:
             x = (x * self.get_candidate_weights()).sum(0)
-        
+
         return x
 
 class ParameterUpsampler(nn.Module):
     def __init__(self, upsample_type, upsample_window, upsample_mult):
-        super(ParameterUpsampler, self).__init__()
+        super().__init__()
+
+        assert upsample_type in ['mask', 'repeat', 'wavg']
+
         self._upsample_type = upsample_type
         self._upsample_window = upsample_window
         self.upsample_mult = upsample_mult
-        assert upsample_type in ['mask', 'repeat', 'wavg']
+
         num_params_3by3 = 9
         upsample_params = num_params_3by3 * self._upsample_window
+
         if self._upsample_type == 'mask':
             upsample_params *= upsample_mult
             self.weights = nn.Parameter(torch.ones(upsample_params) / float(upsample_params))
@@ -209,7 +219,7 @@ class ParameterGroups(nn.Module):
 
                 if layer_shape not in groups[layer_type]:
                     groups[layer_type][layer_shape] = []
-                    
+
                 groups[layer_type][layer_shape].append(i)
 
             layer2group = np.zeros(len(self._layers), np.int32)
@@ -279,7 +289,7 @@ class ParameterGroups(nn.Module):
         group_id = self._groups[layer_id]
         params = getattr(self, '_param_group_' + str(group_id))
         return params(layer_id, layer_shape, coeff)
-        
+
 class ParameterBank(nn.Module):
     def __init__(self, share_type, upsample_type, upsample_window, max_params=0, max_candidates=2, learn_groups=False, init=nn.init.kaiming_normal_, emb_size=24):
         super(ParameterBank, self).__init__()
@@ -347,7 +357,7 @@ class ParameterBank(nn.Module):
 
     def setup_bank(self):
         self.single_layer = len(self._layers) == 1
-        if self.single_layer:            
+        if self.single_layer:
             for layer in self._layers:
                 if isinstance(layer, SConv2d):
                     self.add_module('_layer', nn.Conv2d(layer.in_channels, layer.out_channels, kernel_size=layer.kernel_size, stride=layer.stride, padding=layer.padding))
@@ -369,7 +379,7 @@ class ParameterBank(nn.Module):
             num_params, sharing_blocks = self.even_param_assignments()
         else:
             num_params, sharing_blocks = self.assign_layers_to_params()
-    
+
         self.add_module('_params', SharedParameters(self._upsample_type, self._emb_size, num_params, self._init, sharing_blocks))
 
     def even_param_assignments(self):
@@ -403,7 +413,7 @@ class ParameterBank(nn.Module):
         else:
             num_candidates = np.ones(len(self._layers), np.int64)
             params_by_layer, _ = self.params_per_layer(num_candidates)
-            num_params = max(params_by_layer)            
+            num_params = max(params_by_layer)
             num_candidates = self.get_num_candidates(num_params)
 
         params_by_layer, _ = self.params_per_layer(num_candidates)
@@ -436,7 +446,7 @@ class ParameterBank(nn.Module):
                     else:
                         global_start += layer_params
 
-                    start_end_sets[layer_params]['can'] = can_start                
+                    start_end_sets[layer_params]['can'] = can_start
 
                 params_start = start_end_sets[layer_params]['can'] * layer_params
                 params_end = params_start + layer_params
@@ -499,7 +509,7 @@ class ParameterBank(nn.Module):
                 weight_params[candidates] = [ind+1, params]
                 if self._share_type in ['emb', 'emb_slide']:
                     comb_layer = getattr(self, '_coeff_proj_%i_candidates' % candidates)
-    
+
             comb = ParameterCombiner(self._learn_groups, candidates, layer.shape, num_params, self._upsample_type, self._upsample_window, combiner_params, nn.init.orthogonal_, comb_layer)
             layer.set_coefficients(comb)
             if not self._learn_groups and comb._needs_resize and self._upsample_type != 'inter':
@@ -534,6 +544,3 @@ class ParameterBank(nn.Module):
             params = params.mean(0)
 
         return params
-
-
-

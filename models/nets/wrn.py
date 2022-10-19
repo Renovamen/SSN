@@ -1,34 +1,51 @@
 import torch
 import torch.nn as nn
 from torch.nn import init
-from .layers import *
-from .param_bank import *
+
+from ..layers import *
+from ..param_bank import *
 
 class Block(nn.Module):
     def __init__(self, in_planes, out_planes, stride, bank=None):
         super(Block, self).__init__()
-        
+
         self.bn1 = nn.BatchNorm2d(in_planes)
-        if bank: self.conv1 = SConv2d(bank, in_planes, out_planes, kernel_size=3, stride=stride, padding=1)
-        else: self.conv1 = nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False)
+
+        if bank:
+            self.conv1 = SConv2d(bank, in_planes, out_planes, kernel_size=3, stride=stride, padding=1)
+        else:
+            self.conv1 = nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False)
 
         self.bn2 = nn.BatchNorm2d(out_planes)
-        if bank: self.conv2 = SConv2d(bank, out_planes, out_planes, kernel_size=3, stride=1, padding=1)
-        else: self.conv2 = nn.Conv2d(out_planes, out_planes, kernel_size=3, stride=1, padding=1, bias=False)
+
+        if bank:
+            self.conv2 = SConv2d(bank, out_planes, out_planes, kernel_size=3, stride=1, padding=1)
+        else:
+            self.conv2 = nn.Conv2d(out_planes, out_planes, kernel_size=3, stride=1, padding=1, bias=False)
 
         self.relu = nn.ReLU(inplace=True)
         self.equalInOut = (in_planes == out_planes)
         self.convShortcut = None
+
         if not self.equalInOut:
-            if bank: self.convShortcut = SConv2d(bank, in_planes, out_planes, kernel_size=1, stride=stride, padding=0)
-            else: self.convShortcut = nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, padding=0, bias=False)
+            if bank:
+                self.convShortcut = SConv2d(bank, in_planes, out_planes, kernel_size=1, stride=stride, padding=0)
+            else:
+                self.convShortcut = nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, padding=0, bias=False)
 
     def forward(self, x):
         residual = x
+
         out = self.relu(self.bn1(x))
-        if not self.equalInOut: residual = out
+
+        if not self.equalInOut:
+            residual = out
+
         out = self.conv2(self.relu(self.bn2(self.conv1(out))))
-        if self.convShortcut is not None: residual = self.convShortcut(residual)
+
+        if self.convShortcut is not None:
+            residual = self.convShortcut(residual)
+
         return out + residual
 
 class WRN(nn.Module):
@@ -47,8 +64,10 @@ class WRN(nn.Module):
         if share_type != 'none':
             self.bank = ParameterGroups(groups, share_type, upsample_type, upsample_window, max_params, num_templates)
 
-        if self.bank: self.conv_3x3 = SConv2d(self.bank, 3, n_channels[0], kernel_size=3, stride=1, padding=1)
-        else: self.conv_3x3 = nn.Conv2d(3, n_channels[0], kernel_size=3, stride=1, padding=1, bias=False)
+        if self.bank:
+            self.conv_3x3 = SConv2d(self.bank, 3, n_channels[0], kernel_size=3, stride=1, padding=1)
+        else:
+            self.conv_3x3 = nn.Conv2d(3, n_channels[0], kernel_size=3, stride=1, padding=1, bias=False)
 
         self.stage_1 = self._make_layer(n_channels[0], n_channels[1], num_blocks, 1)
         self.stage_2 = self._make_layer(n_channels[1], n_channels[2], num_blocks, 2)
@@ -56,8 +75,11 @@ class WRN(nn.Module):
 
         self.lastact = nn.Sequential(nn.BatchNorm2d(n_channels[3]), nn.ReLU(inplace=True))
         self.avgpool = nn.AvgPool2d(8)
-        if self.bank: self.classifier = SLinear(self.bank, n_channels[3], num_classes)
-        else: self.classifier = nn.Linear(n_channels[3], num_classes)
+
+        if self.bank:
+            self.classifier = SLinear(self.bank, n_channels[3], num_classes)
+        else:
+            self.classifier = nn.Linear(n_channels[3], num_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):

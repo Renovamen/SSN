@@ -1,9 +1,8 @@
-from collections import Counter
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.rnn import PackedSequence
+
 # Compatibility with PyTorch v1.5.0 versus earlier.
 if hasattr(torch.nn, '_VF'):
     from torch.nn import _VF
@@ -24,7 +23,8 @@ def _addindent(s_, numSpaces):
 
 class SModule(nn.Module):
     def __init__(self, bank, in_features, out_features):
-        super(SModule, self).__init__()
+        super().__init__()
+
         self.in_channels = in_features
         self.out_channels = out_features
 
@@ -32,7 +32,7 @@ class SModule(nn.Module):
         if hasattr(self, 'coefficients'):
             if self.coefficients is not None and hasattr(self.coefficients, '_in_param_shape'):
                 return self.coefficients._in_param_shape
-    
+
         return self.shape
 
     def __repr__(self):
@@ -67,14 +67,18 @@ class SModule(nn.Module):
     def get_params(self):
         return self.bank(self.layer_id, self.coefficients).view(*self.shape)
 
+
 class SConv2d(SModule):
     def __init__(self, bank, in_features, out_features, kernel_size, stride=1, padding=0, groups=1, bias=None):
-        super(SConv2d, self).__init__(bank, in_features, out_features)
+        super().__init__(bank, in_features, out_features)
+
         self.stride = stride
         self.padding = padding
         self.kernel_size = kernel_size
         self.groups = groups
+
         assert in_features % groups == 0
+
         self.shape = [out_features, in_features // groups, kernel_size, kernel_size]
         self.bank, self.group_id, self.layer_id = bank.add_layer(self)
 
@@ -109,9 +113,11 @@ class SConv2d(SModule):
         params = self.get_params()
         return F.conv2d(input, params, stride=self.stride, padding=self.padding, groups=self.groups)
 
+
 class SLinear(SModule):
     def __init__(self, bank, in_features, out_features):
-        super(SLinear, self).__init__(bank, in_features, out_features)
+        super().__init__(bank, in_features, out_features)
+
         self.shape = [out_features, in_features]
         self.bank, self.group_id, self.layer_id = bank.add_layer(self)
         self.bias = None
@@ -134,9 +140,11 @@ class SLinear(SModule):
         params = self.get_params()
         return F.linear(input, params)
 
+
 class SGRU(nn.Module):
     def __init__(self, bank, rnn_type, in_features, out_features, num_layers, batch_first=True, bidirectional=False):
         super(SGRU, self).__init__()
+
         self.rnn_type = rnn_type
         self.mode = 'RNN_TANH'
         self.batch_first = batch_first
@@ -335,5 +343,3 @@ class SGRU(nn.Module):
             return output_packed, self.permute_hidden(hidden, unsorted_indices)
         else:
             return output, self.permute_hidden(hidden, unsorted_indices)
-
-

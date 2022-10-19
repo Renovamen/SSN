@@ -3,16 +3,17 @@
 **SSN** contains a pytorch implementation for our [paper](https://arxiv.org/pdf/2006.10598.pdf).  If you find this code useful in your research, please consider citing:
 
     @InProceedings{plummerNPAS2022,
-         author={Bryan A. Plummer and Nikoli Dryden and Julius Frost and Torsten Hoefler and Kate Saenko},
-         title={Neural Parameter Allocation Search},
-         booktitle={International Conference on Learning Representations (ICLR)},
-         year={2022}
+        author={Bryan A. Plummer and Nikoli Dryden and Julius Frost and Torsten Hoefler and Kate Saenko},
+        title={Neural Parameter Allocation Search},
+        booktitle={International Conference on Learning Representations (ICLR)},
+        year={2022}
     }
 
 This code was tested using pytorch v1.9.
 
 
 ### Training New Models
+
 You can train a model using:
 
     ./train_models.sh <NUM GPUS> <DATASET> <SHARE TYPE> <NAME OF EXPERIMENT> <ADDITIONAL ARGUMENTS>
@@ -31,7 +32,9 @@ Some key arguments would be:
 | --upsample_type  | parameter upsampling strategy to use  |
 | --group_share_type  | parameter downsampling approach to use when learning parameter groups  |
 
+
 ### Evaluation
+
 You can test a model using:
 
     ./test_models.sh <NUM GPUS> <DATASET> <SHARE TYPE> <NAME OF EXPERIMENT> <ADDITIONAL ARGUMENTS>
